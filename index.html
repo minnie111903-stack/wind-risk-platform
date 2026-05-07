@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>海上风电并网极端天气风险预警平台</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">NR</span>
+          <div>
+            <strong>海上风电并网极端天气风险预警平台</strong>
+            <span>江苏电网 · 台风场景 · 30 节点 / 41 线路</span>
+          </div>
+        </div>
+        <nav class="view-tabs" aria-label="页面导航">
+          <button class="tab is-active" data-view="home">首页总览</button>
+          <button class="tab" data-view="weather">天气风险源</button>
+          <button class="tab" data-view="grid">运行状态详情</button>
+          <button class="tab" data-view="risk">风险评估</button>
+          <button class="tab" data-view="warning">主动预警</button>
+        </nav>
+        <div class="global-controls">
+          <label class="select-wrap">
+            <span>全局时间</span>
+            <select id="timeSelect"></select>
+          </label>
+          <button class="icon-button" id="nowBtn" title="回到当前时刻">⟳</button>
+          <button class="icon-button" id="playBtn" title="播放或暂停台风路径">Ⅱ</button>
+        </div>
+      </header>
+
+      <main class="page is-active" id="homeView">
+        <section class="dashboard-grid">
+          <aside class="surface left-stack">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">极端天气风险源</span>
+                <h2>台风路径与风电功率</h2>
+              </div>
+              <button class="link-button" data-view="weather">更多</button>
+            </div>
+            <div class="segmented" id="weatherOffsetTabs">
+              <button class="is-active" data-offset="0">当前</button>
+              <button data-offset="4">未来1h</button>
+              <button data-offset="8">未来2h</button>
+              <button data-offset="16">未来4h</button>
+            </div>
+            <div class="metric-grid compact" id="weatherMetrics"></div>
+            <div class="chart-block">
+              <div class="chart-title">风电场风速 / 台风中心风速</div>
+              <canvas id="weatherChart"></canvas>
+            </div>
+            <div class="chart-block">
+              <div class="chart-title">功率与爬坡预测</div>
+              <canvas id="rampChart"></canvas>
+            </div>
+            <div class="chart-block">
+              <div class="chart-title">预测偏差告警</div>
+              <canvas id="deviationChart"></canvas>
+            </div>
+          </aside>
+
+          <section class="center-workbench">
+            <div class="surface map-panel">
+              <div class="map-toolbar">
+                <div>
+                  <span class="eyebrow">中间地图</span>
+                  <h1>江苏近海风电集群拓扑与台风路径</h1>
+                </div>
+                <div class="toggle-row">
+                  <label><input type="checkbox" id="weatherToggle" checked /> 天气图</label>
+                  <label><input type="checkbox" id="topologyToggle" checked /> 拓扑图</label>
+                </div>
+              </div>
+              <div class="map-canvas-shell">
+                <canvas id="mapCanvas"></canvas>
+                <div class="map-readout" id="mapReadout"></div>
+              </div>
+              <div class="path-strip">
+                <span id="pathStart"></span>
+                <input type="range" id="pathSlider" min="0" value="0" />
+                <span id="pathEnd"></span>
+              </div>
+            </div>
+
+            <div class="surface grid-overview">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">电网运行状态</span>
+                  <h2>全网综合信息</h2>
+                </div>
+                <button class="link-button" data-view="grid">系统运行状态详情</button>
+              </div>
+              <div class="status-grid" id="gridStats"></div>
+              <div class="mini-chart-grid">
+                <div class="chart-block"><div class="chart-title">全网负荷量</div><canvas id="loadChart"></canvas></div>
+                <div class="chart-block"><div class="chart-title">有功缺额 / 频率</div><canvas id="gapChart"></canvas></div>
+                <div class="chart-block"><div class="chart-title">新能源发电量</div><canvas id="renewableChart"></canvas></div>
+                <div class="chart-block"><div class="chart-title">消纳率 / 渗透率</div><canvas id="penetrationChart"></canvas></div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="surface right-stack">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">预警评估情况</span>
+                <h2>风险预警</h2>
+              </div>
+            </div>
+            <div class="risk-hero" id="riskHero"></div>
+            <div class="chart-block">
+              <div class="chart-title">预测时间轴</div>
+              <div class="timeline" id="riskTimeline"></div>
+            </div>
+            <div class="chart-block">
+              <div class="chart-title">风险预警曲线</div>
+              <canvas id="riskCurveChart"></canvas>
+            </div>
+            <div class="action-grid">
+              <button data-view="risk">风险评估界面</button>
+              <button data-view="warning">85% 指标界面</button>
+              <button data-view="warning">主动预警界面</button>
+            </div>
+          </aside>
+        </section>
+      </main>
+
+      <main class="page" id="weatherView">
+        <section class="detail-layout">
+          <div class="surface detail-main">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">极端天气风险源子界面</span>
+                <h2>近期天气形势</h2>
+              </div>
+              <button class="home-button" data-view="home">主页</button>
+            </div>
+            <div class="weather-map-row">
+              <canvas id="weatherMapCanvas"></canvas>
+              <div class="surface-lite" id="weatherDetailMetrics"></div>
+            </div>
+            <div class="detail-chart-grid">
+              <div class="chart-block"><div class="chart-title">风速与气压</div><canvas id="weatherDeepChart"></canvas></div>
+              <div class="chart-block"><div class="chart-title">典型风电场运行数据</div><canvas id="windFarmChart"></canvas></div>
+            </div>
+          </div>
+          <aside class="surface detail-side">
+            <h3>台风数据</h3>
+            <div class="data-list" id="typhoonList"></div>
+          </aside>
+        </section>
+      </main>
+
+      <main class="page" id="gridView">
+        <section class="detail-layout wide">
+          <div class="surface detail-main">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">电网运行状态子界面</span>
+                <h2>系统运行状态详情</h2>
+              </div>
+              <button class="home-button" data-view="home">主页</button>
+            </div>
+            <div class="detail-map-row">
+              <canvas id="detailMapCanvas"></canvas>
+              <div class="element-card" id="elementInfo"></div>
+            </div>
+            <div class="detail-chart-grid">
+              <div class="chart-block"><div class="chart-title">十二小时负荷与风电</div><canvas id="gridPowerChart"></canvas></div>
+              <div class="chart-block"><div class="chart-title">线路负载率 Top 8</div><canvas id="lineRateChart"></canvas></div>
+            </div>
+          </div>
+          <aside class="surface detail-side">
+            <h3>越限情况统计</h3>
+            <div class="metric-list" id="gridDetailStats"></div>
+            <h3>220kV 及以下节点</h3>
+            <div class="node-table" id="lowVoltageNodes"></div>
+          </aside>
+        </section>
+      </main>
+
+      <main class="page" id="riskView">
+        <section class="risk-layout">
+          <div class="surface">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">系统风险评估指标子界面</span>
+                <h2>安全性指标</h2>
+              </div>
+              <button class="home-button" data-view="home">主页</button>
+            </div>
+            <div class="risk-focus" id="securityFocus"></div>
+            <canvas class="tall-chart" id="securityChart"></canvas>
+          </div>
+          <div class="surface">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">系统风险评估指标子界面</span>
+                <h2>充裕性指标</h2>
+              </div>
+            </div>
+            <div class="risk-focus" id="adequacyFocus"></div>
+            <canvas class="tall-chart" id="adequacyChart"></canvas>
+          </div>
+          <div class="surface thresholds">
+            <h3>风险等级测定</h3>
+            <div id="thresholdTable"></div>
+          </div>
+        </section>
+      </main>
+
+      <main class="page" id="warningView">
+        <section class="warning-layout">
+          <div class="surface span-2">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">主动预警子界面</span>
+                <h2>风险预警曲线</h2>
+              </div>
+              <button class="home-button" data-view="home">主页</button>
+            </div>
+            <canvas class="tall-chart" id="warningCurveChart"></canvas>
+          </div>
+          <div class="surface">
+            <h3>风险预警等级及评分</h3>
+            <div id="warningScore"></div>
+            <button class="full-button" data-view="risk">进入风险评估界面</button>
+          </div>
+          <div class="surface span-2">
+            <h3>预警时间轴</h3>
+            <div class="timeline large" id="warningTimeline"></div>
+          </div>
+          <div class="surface">
+            <h3>当前累计准确率</h3>
+            <canvas id="accuracyGauge"></canvas>
+          </div>
+          <div class="surface">
+            <h3>历史预警准确率</h3>
+            <canvas id="monthlyAccuracyChart"></canvas>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="src/data.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
