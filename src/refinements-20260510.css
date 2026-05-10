@@ -1,0 +1,43 @@
+.path-mode-button {
+  min-width: 104px;
+  min-height: 34px;
+  border: 1px solid rgba(45, 127, 116, 0.28);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--teal-dark);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.path-mode-button.is-active {
+  background: #e8f3ee;
+}
+
+.path-window-note {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chart-title span,
+.panel-heading h2 span {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 860px) {
+  .path-strip {
+    flex-wrap: wrap;
+  }
+
+  .path-strip input {
+    min-width: 220px;
+  }
+}
