@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>海上风电并网极端天气风险预警平台</title>
     <link rel="stylesheet" href="src/styles.css" />
+    <link rel="stylesheet" href="src/refinements-20260510.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -84,7 +85,9 @@
                 <span id="pathStart"></span>
                 <input type="range" id="pathSlider" min="0" value="0" />
                 <span id="pathEnd"></span>
+                <button class="path-mode-button is-active" id="pathWindowBtn" type="button">固定2小时段</button>
               </div>
+              <div class="path-window-note" id="pathWindowNote"></div>
             </div>
 
             <div class="surface grid-overview">
@@ -118,12 +121,11 @@
               <div class="timeline" id="riskTimeline"></div>
             </div>
             <div class="chart-block">
-              <div class="chart-title">风险预警曲线</div>
+              <div class="chart-title">风险预警曲线 <span id="riskWindowLabel"></span></div>
               <canvas id="riskCurveChart"></canvas>
             </div>
             <div class="action-grid">
               <button data-view="risk">风险评估界面</button>
-              <button data-view="warning">85% 指标界面</button>
               <button data-view="warning">主动预警界面</button>
             </div>
           </aside>
@@ -220,7 +222,7 @@
             <div class="panel-heading">
               <div>
                 <span class="eyebrow">主动预警子界面</span>
-                <h2>风险预警曲线</h2>
+                <h2>风险预警曲线 <span id="warningWindowLabel"></span></h2>
               </div>
               <button class="home-button" data-view="home">主页</button>
             </div>
@@ -249,5 +251,6 @@
 
     <script src="src/data.js"></script>
     <script src="src/app.js"></script>
+    <script src="src/refinements-20260510.js"></script>
   </body>
 </html>
