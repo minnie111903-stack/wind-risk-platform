@@ -10,23 +10,23 @@ window.PLATFORM_DATA = {
     "weatherType": "台风",
     "riskLevels": [
       {
-        "level": "I级 低风险",
-        "range": "0 <= 综合风险 < 0.03",
+        "level": "正常",
+        "range": "0.00 <= 综合风险 < 0.25",
         "color": "#2f9e72"
       },
       {
-        "level": "II级 关注",
-        "range": "0.03 <= 综合风险 < 0.08",
+        "level": "关注",
+        "range": "0.25 <= 综合风险 < 0.50",
         "color": "#c18a1b"
       },
       {
-        "level": "III级 警戒",
-        "range": "0.08 <= 综合风险 < 0.14",
+        "level": "预警",
+        "range": "0.50 <= 综合风险 < 0.75",
         "color": "#d86d27"
       },
       {
-        "level": "IV级 高风险",
-        "range": "综合风险 >= 0.14",
+        "level": "高危",
+        "range": "0.75 <= 综合风险 <= 1.00",
         "color": "#c74343"
       }
     ],
