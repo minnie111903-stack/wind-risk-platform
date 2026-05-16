@@ -518,29 +518,32 @@ canvas {
 .map-legend-panel {
   position: absolute;
   z-index: 3;
-  border: 1px solid rgba(173, 205, 194, 0.34);
+  border: 1px solid rgba(45, 127, 116, 0.2);
   border-radius: var(--radius);
-  background: rgba(246, 251, 249, 0.9);
-  box-shadow: 0 12px 26px rgba(0, 18, 24, 0.14);
+  background: rgba(251, 252, 250, 0.92);
+  box-shadow: 0 10px 22px rgba(31, 41, 38, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .map-legend-panel {
-  left: 54px;
+  left: 50%;
   bottom: 6px;
+  transform: translateX(-50%);
   display: grid;
-  grid-template-columns: 42px repeat(4, minmax(62px, auto));
-  gap: 5px 10px;
-  width: min(620px, calc(100% - 108px));
-  padding: 7px 12px;
+  grid-template-columns: 34px repeat(5, max-content);
+  gap: 4px 12px;
+  width: fit-content;
+  max-width: min(610px, calc(100% - 108px));
+  padding: 7px 10px;
   color: var(--text);
   font-size: 11px;
   pointer-events: none;
 }
 
 .map-legend-panel strong {
-  grid-row: span 2;
+  grid-row: span 3;
   color: var(--teal-dark);
-  font-size: 13px;
+  font-size: 12px;
   align-self: center;
 }
 
@@ -560,6 +563,9 @@ canvas {
 .line-220,
 .line-110,
 .risk-heavy,
+.risk-overload,
+.legend-array,
+.legend-export,
 .path-forecast {
   width: 24px;
   height: 0;
@@ -582,8 +588,25 @@ canvas {
 }
 
 .risk-heavy {
+  border-top-width: 3px;
+  border-color: var(--amber);
+}
+
+.risk-overload {
   border-top-width: 4px;
-  border-color: var(--orange);
+  border-color: var(--red);
+}
+
+.legend-array {
+  border-top-width: 2px;
+  border-color: #42e8e0;
+  border-top-style: dashed;
+}
+
+.legend-export {
+  border-top-width: 4px;
+  border-color: #27d3ff;
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .path-forecast {
@@ -594,7 +617,11 @@ canvas {
 
 .node-hub,
 .node-load,
-.node-wind {
+.node-wind,
+.legend-windfarm,
+.legend-oss,
+.legend-lss,
+.legend-poi {
   width: 13px;
   height: 13px;
   border: 2px solid #fff;
@@ -614,6 +641,27 @@ canvas {
 .node-wind {
   border-radius: 50%;
   background: var(--cyan);
+}
+
+.legend-windfarm {
+  border-radius: 50%;
+  background: #27d3ff;
+}
+
+.legend-oss {
+  background: #8aa4ff;
+  transform: rotate(45deg);
+}
+
+.legend-lss {
+  border-radius: 3px;
+  background: #ffd166;
+}
+
+.legend-poi {
+  border: 3px solid #ffd166;
+  border-radius: 50%;
+  background: #fff;
 }
 
 .map-readout.is-idle {
@@ -1455,6 +1503,7 @@ canvas {
 
   .map-legend-panel {
     left: 16px;
+    transform: none;
     width: calc(100% - 32px);
     grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: none;

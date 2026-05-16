@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "build": "node --check src/app.js && node --check src/data.js"
+  },
+  "devDependencies": {}
+}

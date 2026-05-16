@@ -83,6 +83,38 @@ const TOPOLOGY_LAYOUT = new Map([
   [30, [96, 76]],
 ]);
 
+const OFFSHORE_TOPOLOGY_NODES = [
+  { id: "WF-A", displayName: "WF-A", name: "海上风电场A", type: "windFarm", region: "offshore", voltageLevel: "35kV", x: 77, y: 22 },
+  { id: "WF-B", displayName: "WF-B", name: "海上风电场B", type: "windFarm", region: "offshore", voltageLevel: "35kV", x: 91, y: 31 },
+  { id: "WF-C", displayName: "WF-C", name: "海上风电场C", type: "windFarm", region: "offshore", voltageLevel: "35kV", x: 78, y: 61 },
+  { id: "WF-D", displayName: "WF-D", name: "海上风电场D", type: "windFarm", region: "offshore", voltageLevel: "35kV", x: 91, y: 71 },
+  { id: "OSS-1", displayName: "OSS-1", name: "海上升压站1", type: "offshoreSubstation", region: "offshore", voltageLevel: "220kV", x: 68, y: 33 },
+  { id: "OSS-2", displayName: "OSS-2", name: "海上升压站2", type: "offshoreSubstation", region: "offshore", voltageLevel: "220kV", x: 70, y: 63 },
+  { id: "LSS-1", displayName: "LSS-1", name: "陆上集控中心 / 陆上变电站", type: "onshoreSubstation", region: "onshore", voltageLevel: "220kV", x: 36, y: 55 },
+  { id: "POI-1", displayName: "POI-1", name: "并网点1", type: "poi", region: "onshore", voltageLevel: "220kV", x: 32, y: 48 },
+  { id: "POI-2", displayName: "POI-2", name: "并网点2", type: "poi", region: "onshore", voltageLevel: "220kV", x: 34, y: 69 },
+];
+
+const OFFSHORE_TOPOLOGY_LINKS = [
+  { id: "AC-1", source: "WF-A", target: "OSS-1", type: "arrayCable", lineType: "集电线路", name: "WF-A 至 OSS-1 集电线路", voltageLevel: "35kV" },
+  { id: "AC-2", source: "WF-B", target: "OSS-1", type: "arrayCable", lineType: "集电线路", name: "WF-B 至 OSS-1 集电线路", voltageLevel: "35kV" },
+  { id: "AC-3", source: "WF-C", target: "OSS-2", type: "arrayCable", lineType: "集电线路", name: "WF-C 至 OSS-2 集电线路", voltageLevel: "35kV" },
+  { id: "AC-4", source: "WF-D", target: "OSS-2", type: "arrayCable", lineType: "集电线路", name: "WF-D 至 OSS-2 集电线路", voltageLevel: "35kV" },
+  { id: "EC-1", source: "OSS-1", target: "LSS-1", type: "exportCable", lineType: "送出海缆", name: "OSS-1 至 LSS-1 送出海缆", voltageLevel: "220kV", route: [[59, 40], [49, 49]] },
+  { id: "EC-2", source: "OSS-2", target: "LSS-1", type: "exportCable", lineType: "送出海缆", name: "OSS-2 至 LSS-1 送出海缆", voltageLevel: "220kV", route: [[59, 61], [48, 58]] },
+  { id: "TL-1", source: "LSS-1", target: "POI-1", type: "trunkLine", lineType: "主干输电走廊", name: "LSS-1 至 POI-1 主干输电走廊", voltageLevel: "220kV" },
+  { id: "TL-2", source: "LSS-1", target: "POI-2", type: "trunkLine", lineType: "主干输电走廊", name: "LSS-1 至 POI-2 主干输电走廊", voltageLevel: "220kV" },
+  { id: "GI-1", source: "POI-1", target: 6, type: "gridIntertie", lineType: "岸上接入线", name: "POI-1 接入 500kV 主环网", voltageLevel: "220kV" },
+  { id: "GI-2", source: "POI-2", target: 12, type: "gridIntertie", lineType: "岸上接入线", name: "POI-2 接入 220kV 环网", voltageLevel: "220kV" },
+];
+
+const OFFSHORE_NODE_TYPE_LABELS = {
+  windFarm: "海上风电场/风机群",
+  offshoreSubstation: "海上升压站",
+  onshoreSubstation: "陆上集控/变电站",
+  poi: "并网点",
+};
+
 function $(id) {
   return document.getElementById(id);
 }
@@ -800,6 +832,38 @@ function renderLowVoltageNodes() {
 function renderElementInfo() {
   const holder = $("elementInfo");
   const current = rec();
+  if (state.selectedElement?.type === "topologyNode") {
+    const node = offshoreNodeById(state.selectedElement.id);
+    const level = current.risk.warningLevel || current.risk.level;
+    holder.innerHTML = `
+      <h3>${node.displayName} 设备信息</h3>
+      ${metricDefinitionList([
+        ["名称", node.name],
+        ["设备类型", OFFSHORE_NODE_TYPE_LABELS[node.type] || node.type],
+        ["所属区域", node.region === "offshore" ? "海上" : "岸上"],
+        ["电压等级", node.voltageLevel || "--"],
+        ["当前风险", level.name],
+        ["当前时间", current.label],
+      ])}
+    `;
+    return;
+  }
+  if (state.selectedElement?.type === "topologyLink") {
+    const link = OFFSHORE_TOPOLOGY_LINKS.find((item) => item.id === state.selectedElement.id);
+    const rate = link.type === "trunkLine" || link.type === "gridIntertie" ? current.flow.summary.maxLineRate : null;
+    holder.innerHTML = `
+      <h3>${link.name}</h3>
+      ${metricDefinitionList([
+        ["线路类型", link.lineType],
+        ["起点", endpointDisplayName(link.source)],
+        ["终点", endpointDisplayName(link.target)],
+        ["电压等级", link.voltageLevel || "--"],
+        ["负荷率", rate === null ? "--" : fmt(rate * 100, "%", 1)],
+        ["风险状态", topologyLinkRiskLabel(link, current)],
+      ])}
+    `;
+    return;
+  }
   if (!state.selectedElement || state.selectedElement.type === "node") {
     const node = DATA.nodes.find((item) => item.id === (state.selectedElement?.id || 1)) || DATA.nodes[0];
     const idx = node.id - 1;
@@ -1031,7 +1095,7 @@ function drawMap(id, options = {}) {
   if (showTopology) drawTopologyLayer(ctx, map, id);
   if (showWeather && !showTopology) drawWindFarm(ctx, map);
   drawMapLabels(ctx, map);
-  hitCache.set(id, showTopology ? makeHitZones(map) : { nodes: [], lines: [] });
+  hitCache.set(id, showTopology ? makeHitZones(id, map) : { nodes: [], lines: [], topologyNodes: [], topologyLinks: [] });
   canvas.style.cursor = canDragTyphoonOnCanvas(id) ? "grab" : "crosshair";
   updateMapReadout();
 }
@@ -1308,6 +1372,8 @@ function drawTopologyLayer(ctx, map, id) {
     ctx.restore();
   });
 
+  if (id === "mapCanvas") drawOffshoreTopologyLinks(ctx, map, current);
+
   drawCrossingBridges(ctx, crossingPoints);
 
   DATA.nodes.forEach((node, idx) => {
@@ -1317,7 +1383,203 @@ function drawTopologyLayer(ctx, map, id) {
     drawNodeSymbol(ctx, node, point, voltage, isSelected);
   });
 
+  if (id === "mapCanvas") drawOffshoreTopologyNodes(ctx, map, current);
+
   if (id !== "mapCanvas") drawTopologyLegend(ctx, map);
+}
+
+function drawOffshoreTopologyLinks(ctx, map, current) {
+  OFFSHORE_TOPOLOGY_LINKS.forEach((link) => {
+    const points = offshoreLinkPath(link, map);
+    const selected = state.selectedElement?.type === "topologyLink" && state.selectedElement.id === link.id;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (link.type === "arrayCable") {
+      ctx.strokeStyle = selected ? "#ffffff" : "rgba(66, 232, 224, 0.82)";
+      ctx.lineWidth = selected ? 3.6 : 2;
+      ctx.setLineDash([5, 5]);
+      strokePolyline(ctx, points);
+    } else if (link.type === "exportCable") {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
+      ctx.lineWidth = selected ? 7 : 6;
+      strokePolyline(ctx, points);
+      ctx.strokeStyle = selected ? "#27d3ff" : "rgba(39, 211, 255, 0.9)";
+      ctx.lineWidth = selected ? 4.4 : 3.4;
+      strokePolyline(ctx, points);
+      drawCableFlowDots(ctx, points, selected ? "#ffffff" : "rgba(255,255,255,0.86)");
+    } else {
+      const riskColor = topologyLinkRiskColor(link, current);
+      ctx.strokeStyle = selected ? colors.red : riskColor;
+      ctx.lineWidth = selected ? 5 : link.type === "trunkLine" ? 4 : 3;
+      strokePolyline(ctx, points);
+    }
+    ctx.restore();
+  });
+}
+
+function drawOffshoreTopologyNodes(ctx, map, current) {
+  OFFSHORE_TOPOLOGY_NODES.forEach((node) => {
+    const point = offshoreNodePoint(node, map);
+    const selected = state.selectedElement?.type === "topologyNode" && state.selectedElement.id === node.id;
+    drawOffshoreDeviceNode(ctx, node, point, current, selected);
+  });
+}
+
+function drawOffshoreDeviceNode(ctx, node, point, current, selected) {
+  ctx.save();
+  ctx.shadowColor = selected ? "rgba(255, 209, 102, 0.5)" : "rgba(0, 18, 24, 0.24)";
+  ctx.shadowBlur = selected ? 14 : 6;
+  ctx.shadowOffsetY = 2;
+  ctx.lineWidth = selected ? 3.2 : 2;
+
+  if (node.type === "windFarm") {
+    ctx.fillStyle = "#27d3ff";
+    ctx.strokeStyle = selected ? "#ffd166" : "#ffffff";
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    drawWindIcon(ctx, point.x, point.y, 11);
+  } else if (node.type === "offshoreSubstation") {
+    ctx.fillStyle = "#8aa4ff";
+    ctx.strokeStyle = selected ? "#ffd166" : "#ffffff";
+    drawDiamond(ctx, point.x, point.y, 13);
+    ctx.fill();
+    ctx.stroke();
+    drawPlatformMark(ctx, point.x, point.y);
+  } else if (node.type === "onshoreSubstation") {
+    ctx.fillStyle = "#ffd166";
+    ctx.strokeStyle = selected ? "#ffffff" : "rgba(31, 41, 38, 0.32)";
+    ctx.beginPath();
+    ctx.roundRect(point.x - 12, point.y - 12, 24, 24, 5);
+    ctx.fill();
+    ctx.stroke();
+    drawBuildingMark(ctx, point.x, point.y);
+  } else if (node.type === "poi") {
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#ffd166";
+    ctx.lineWidth = selected ? 4 : 3;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 6.5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  drawDeviceLabel(ctx, node.displayName, point, node.type);
+  if (node.type === "onshoreSubstation") {
+    ctx.save();
+    ctx.fillStyle = "rgba(31, 93, 87, 0.58)";
+    ctx.font = "700 10px Microsoft YaHei, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("登陆点", point.x, point.y + 29);
+    ctx.restore();
+  }
+}
+
+function drawDiamond(ctx, x, y, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - radius);
+  ctx.lineTo(x + radius, y);
+  ctx.lineTo(x, y + radius);
+  ctx.lineTo(x - radius, y);
+  ctx.closePath();
+}
+
+function drawPlatformMark(ctx, x, y) {
+  ctx.save();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 6, y + 2);
+  ctx.lineTo(x + 6, y + 2);
+  ctx.moveTo(x - 4, y + 5);
+  ctx.lineTo(x - 1, y + 2);
+  ctx.moveTo(x + 4, y + 5);
+  ctx.lineTo(x + 1, y + 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBuildingMark(ctx, x, y) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(31, 41, 38, 0.72)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x - 5, y + 5);
+  ctx.lineTo(x - 5, y - 3);
+  ctx.lineTo(x, y - 7);
+  ctx.lineTo(x + 5, y - 3);
+  ctx.lineTo(x + 5, y + 5);
+  ctx.moveTo(x - 8, y + 5);
+  ctx.lineTo(x + 8, y + 5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDeviceLabel(ctx, label, point, type) {
+  const offsetY = type === "poi" ? 23 : 25;
+  ctx.save();
+  ctx.font = "800 10px Microsoft YaHei, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(246, 251, 249, 0.92)";
+  ctx.fillStyle = type === "windFarm" ? "#0b6f82" : type === "offshoreSubstation" ? "#4a55a8" : colors.text;
+  ctx.strokeText(label, point.x, point.y + offsetY);
+  ctx.fillText(label, point.x, point.y + offsetY);
+  ctx.restore();
+}
+
+function drawCableFlowDots(ctx, points, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  points.slice(0, -1).forEach((from, idx) => {
+    const to = points[idx + 1];
+    const x = from.x + (to.x - from.x) * 0.55;
+    const y = from.y + (to.y - from.y) * 0.55;
+    ctx.beginPath();
+    ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function offshoreNodePoint(node, map) {
+  return topologyCoord(node.x, node.y, map);
+}
+
+function offshoreNodeById(id) {
+  return OFFSHORE_TOPOLOGY_NODES.find((node) => node.id === id);
+}
+
+function offshoreEndpointPoint(endpoint, map) {
+  if (typeof endpoint === "number") return topologyPoint(endpoint, map);
+  const node = offshoreNodeById(endpoint);
+  return node ? offshoreNodePoint(node, map) : topologyCoord(50, 50, map);
+}
+
+function offshoreLinkPath(link, map) {
+  const points = [offshoreEndpointPoint(link.source, map)];
+  (link.route || []).forEach(([x, y]) => points.push(topologyCoord(x, y, map)));
+  points.push(offshoreEndpointPoint(link.target, map));
+  return points;
+}
+
+function topologyLinkRiskColor(link, current) {
+  if (link.type === "gridIntertie") return lineColor({ from: 6, to: 9 }, current.flow.summary.maxLineRate, false);
+  const level = current.risk.warningLevel || current.risk.level;
+  if (link.type === "trunkLine" && (current.risk.line >= 0.14 || level.tone === "danger")) return colors.red;
+  if (link.type === "trunkLine" && (current.risk.line >= 0.08 || level.tone === "warn")) return colors.orange;
+  if (link.type === "trunkLine" && (current.risk.line >= 0.03 || level.tone === "watch")) return colors.amber;
+  return "rgba(45, 142, 160, 0.82)";
 }
 
 function strokePolyline(ctx, points) {
@@ -1728,14 +1990,29 @@ function topologyPoint(nodeId, map) {
   };
 }
 
-function makeHitZones(map) {
+function makeHitZones(id, map) {
   const positions = nodePositions(map);
   const nodes = DATA.nodes.map((node) => ({ ...node, ...positions.get(node.id), radius: WIND_NODE_IDS.has(node.id) ? 16 : 13 }));
   const lines = DATA.lines.map((line) => ({
     ...line,
     path: linePath(line, positions, map),
   }));
-  return { nodes, lines };
+  const topologyNodes =
+    id === "mapCanvas"
+      ? OFFSHORE_TOPOLOGY_NODES.map((node) => ({
+          ...node,
+          ...offshoreNodePoint(node, map),
+          radius: node.type === "windFarm" || node.type === "offshoreSubstation" ? 18 : 15,
+        }))
+      : [];
+  const topologyLinks =
+    id === "mapCanvas"
+      ? OFFSHORE_TOPOLOGY_LINKS.map((link) => ({
+          ...link,
+          path: offshoreLinkPath(link, map),
+        }))
+      : [];
+  return { nodes, lines, topologyNodes, topologyLinks };
 }
 
 function updateMapReadout() {
@@ -1744,6 +2021,34 @@ function updateMapReadout() {
   const current = rec();
   if (state.selectedElement) {
     holder.className = "map-readout is-selected";
+    if (state.selectedElement.type === "topologyNode") {
+      const node = offshoreNodeById(state.selectedElement.id);
+      const level = current.risk.warningLevel || current.risk.level;
+      holder.innerHTML = `
+        <strong>${node.name}</strong>
+        <p>设备类型：${OFFSHORE_NODE_TYPE_LABELS[node.type] || node.type}</p>
+        <p>所属区域：${node.region === "offshore" ? "海上" : "岸上"}</p>
+        <p>电压等级：${node.voltageLevel || "--"}</p>
+        <p>当前风险等级：${level.name}</p>
+        <p>当前时间：${current.label}</p>
+      `;
+      return;
+    }
+    if (state.selectedElement.type === "topologyLink") {
+      const link = OFFSHORE_TOPOLOGY_LINKS.find((item) => item.id === state.selectedElement.id);
+      const rate = link.type === "trunkLine" || link.type === "gridIntertie" ? current.flow.summary.maxLineRate : null;
+      const risk = topologyLinkRiskLabel(link, current);
+      holder.innerHTML = `
+        <strong>${link.name}</strong>
+        <p>线路类型：${link.lineType}</p>
+        <p>起点：${endpointDisplayName(link.source)}</p>
+        <p>终点：${endpointDisplayName(link.target)}</p>
+        <p>电压等级：${link.voltageLevel || "--"}</p>
+        <p>负荷率：${rate === null ? "--" : fmt(rate * 100, "%", 1)}</p>
+        <p>风险状态：${risk}</p>
+      `;
+      return;
+    }
     if (state.selectedElement.type === "node") {
       const node = DATA.nodes.find((item) => item.id === state.selectedElement.id);
       const idx = node.id - 1;
@@ -1778,6 +2083,22 @@ function updateMapReadout() {
     <p>${current.label} · 台风中心 ${fmt(current.typhoon.wind, " m/s", 1)} · 风电功率 ${fmt(current.typhoon.windFarmPower, " MW", 1)}</p>
     <p>线路最高负载率 ${fmt(current.flow.summary.maxLineRate * 100, "%", 1)} · 点击节点或线路查看详情。</p>
   `;
+}
+
+function endpointDisplayName(endpoint) {
+  if (typeof endpoint === "number") {
+    const node = DATA.nodes[endpoint - 1];
+    return node ? `${node.name} / Bus-${String(endpoint).padStart(2, "0")}` : `Bus-${String(endpoint).padStart(2, "0")}`;
+  }
+  const device = offshoreNodeById(endpoint);
+  return device ? `${device.displayName} ${device.name}` : String(endpoint);
+}
+
+function topologyLinkRiskLabel(link, current) {
+  if (link.type === "arrayCable") return current.risk.windDeviation >= 0.25 ? "风电偏差关注" : "正常";
+  if (link.type === "exportCable") return current.typhoon.windFarmWind >= 13 ? "风速扰动关注" : "正常";
+  const level = current.risk.warningLevel || current.risk.level;
+  return level.name;
 }
 
 function bindCanvasSelection(id) {
@@ -1835,9 +2156,21 @@ function bindCanvasSelection(id) {
     const y = event.clientY - rect.top;
     const zones = hitCache.get(id);
     if (!zones) return;
+    const topologyNode = zones.topologyNodes?.find((item) => Math.hypot(item.x - x, item.y - y) <= item.radius);
+    if (topologyNode) {
+      state.selectedElement = { type: "topologyNode", id: topologyNode.id };
+      render();
+      return;
+    }
     const node = zones.nodes.find((item) => Math.hypot(item.x - x, item.y - y) <= item.radius);
     if (node) {
       state.selectedElement = { type: "node", id: node.id };
+      render();
+      return;
+    }
+    const topologyLink = zones.topologyLinks?.find((item) => minDistanceToPolyline({ x, y }, item.path) < (item.type === "exportCable" ? 11 : 8));
+    if (topologyLink) {
+      state.selectedElement = { type: "topologyLink", id: topologyLink.id };
       render();
       return;
     }
